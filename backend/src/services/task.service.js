@@ -1,4 +1,4 @@
-const Task = require("../models/Task.model");
+const Task = require("../models/task.model");
 const User = require("../models/user.model");
 const ApiResponse = require("../utils/apiResponse");
 const ROLES = require("../constants/role.const");
@@ -30,7 +30,7 @@ const create = async (req) => {
 
     const assignee = await User.findOne({ _id: assignedTo, deletedAt: null });
     if (assignee && assignee.email) {
-        sendTaskCreatedEmail(assignee.email, title).catch(() => {});
+        sendTaskCreatedEmail(assignee.email, title).catch(() => { });
     }
 
     emitTaskUpdate("create", task);
@@ -140,7 +140,7 @@ const updateStatus = async (req) => {
         for (const t of completedTasks) {
             const creator = await User.findOne({ _id: t.createdBy, deletedAt: null });
             if (creator && creator.email) {
-                sendTaskCompletedEmail(creator.email, t.title).catch(() => {});
+                sendTaskCompletedEmail(creator.email, t.title).catch(() => { });
             }
         }
     }
