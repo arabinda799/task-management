@@ -4,7 +4,7 @@ const argon2 = require("argon2");
 
 const conn = require('./db');
 
-const User = require("../models/User.model");
+const User = require("../models/user.model");
 const ROLES = require("../constants/role.const");
 
 async function seed() {

@@ -1,13 +1,14 @@
 import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:5000/api/auth';
+  private apiUrl = `${environment.apiUrl}/api/auth`;
 
   currentUser = signal<any>(null);
 
@@ -42,7 +43,7 @@ export class AuthService {
   logout(): void {
     const refreshToken = localStorage.getItem('refreshToken');
     if (refreshToken) {
-      this.http.post('http://localhost:5000/api/auth/logout', { refreshToken }).subscribe();
+      this.http.post(`${this.apiUrl}/api/auth/logout`, { refreshToken }).subscribe();
     }
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');

@@ -2,6 +2,7 @@ import { inject } from '@angular/core';
 import { HttpInterceptorFn, HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { Router } from '@angular/router';
+import { environment } from '../../environments/environment';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const token = localStorage.getItem('accessToken');
@@ -25,7 +26,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       if (isUnauthorized || isExpiredMessage) {
         const refreshToken = localStorage.getItem('refreshToken');
         if (refreshToken) {
-          return http.post<any>('http://localhost:5000/api/auth/refresh', { refreshToken }).pipe(
+          return http.post<any>(`${environment.apiUrl}/api/auth/refresh`, { refreshToken }).pipe(
             switchMap((res: any) => {
               if (res?.success && res.data) {
                 localStorage.setItem('accessToken', res.data.accessToken);
