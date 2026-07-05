@@ -1,0 +1,80 @@
+<div class="d-flex min-vh-100">
+  <div class="bg-dark text-white border-end sidebar-container p-3 d-flex flex-column" [class.show-sidebar]="sidebarExpanded()">
+    <div class="d-flex justify-content-between align-items-center mb-4 py-2 border-bottom">
+      <h4 class="m-0 text-center flex-grow-1">Task Manager</h4>
+      <button class="btn btn-dark btn-sm d-lg-none" (click)="toggleSidebar()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    
+    <ul class="nav nav-pills flex-column mb-auto">
+      <li class="nav-item">
+        <a routerLink="/dashboard" routerLinkActive="active" class="nav-link text-white d-flex align-items-center gap-2" (click)="sidebarExpanded.set(false)">
+          <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+      </li>
+      
+      @if (authService.currentUser()?.role !== 'EMPLOYEE') {
+        <li>
+          <a routerLink="/users" routerLinkActive="active" class="nav-link text-white d-flex align-items-center gap-2 mt-2" (click)="sidebarExpanded.set(false)">
+            <i class="bi bi-people"></i> Users
+          </a>
+        </li>
+      }
+
+      <li>
+        <a routerLink="/tasks" routerLinkActive="active" class="nav-link text-white d-flex align-items-center gap-2 mt-2" (click)="sidebarExpanded.set(false)">
+          <i class="bi bi-list-task"></i> Tasks
+        </a>
+      </li>
+    </ul>
+
+    <hr>
+    
+    <div class="dropdown">
+      <button class="btn btn-dark w-100 text-start d-flex align-items-center justify-content-between p-2 border" (click)="logout()">
+        <span class="d-flex align-items-center gap-2">
+          <i class="bi bi-box-arrow-right"></i> Logout
+        </span>
+      </button>
+    </div>
+  </div>
+
+  <div class="flex-grow-1 d-flex flex-column">
+    <header class="navbar navbar-expand-lg navbar-light bg-white border-bottom px-4 py-2 shadow-sm d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-2 text-secondary">
+        <button class="btn btn-light d-lg-none me-2" (click)="toggleSidebar()">
+          <i class="bi bi-list fs-5"></i>
+        </button>
+        <i class="bi bi-person-circle d-none d-sm-inline"></i>
+        <span>Logged in as: <strong>{{ authService.currentUser()?.username }}</strong> ({{ authService.currentUser()?.role }})</span>
+      </div>
+
+      <div class="d-flex align-items-center gap-3">
+        <div class="dropdown">
+          <button class="btn btn-light position-relative p-2 rounded-circle border dropdown-toggle no-caret" data-bs-toggle="dropdown">
+            <i class="bi bi-bell fs-5"></i>
+            @if (notificationsCount() > 0) {
+              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                {{ notificationsCount() }}
+              </span>
+            }
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow p-2" style="width: 300px;">
+            <li class="dropdown-header border-bottom pb-2">Notifications</li>
+            @for (notif of socketService.notifications(); track notif) {
+              <li class="py-2 border-bottom text-wrap fs-7">
+                <span class="badge bg-info text-dark mb-1">{{ notif.event }}</span>
+                <div class="text-secondary small">Task: {{ notif.task?.title }}</div>
+              </li>
+            } @empty {
+              <li class="text-center py-3 text-muted">No new notifications</li>
+            }
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-grow-1 bg-light">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

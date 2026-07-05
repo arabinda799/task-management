@@ -1,0 +1,8 @@
+.sort-header {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sort-header:hover {
+  background-color: #e9ecef;
+}
