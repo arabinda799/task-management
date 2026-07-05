@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { UserService } from '../../services/user.service';
 import { AuthService } from '../../services/auth.service';
@@ -9,7 +9,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [ReactiveFormsModule, DatePipe],
+  imports: [ReactiveFormsModule, FormsModule, DatePipe],
   templateUrl: './users.component.html',
   styleUrl: './users.component.css'
 })
@@ -26,6 +26,7 @@ export class UsersComponent implements OnInit {
   searchControl = new FormControl('');
   searchQuery = '';
   userTypeFilter = '';
+  showPassword = false;
 
   currentPage = 1;
   totalPages = 1;
@@ -36,6 +37,10 @@ export class UsersComponent implements OnInit {
 
   showModal = false;
   editingUser: any = null;
+  showPendingModal = false;
+  pendingUser: any = null;
+  activateReportsTo = '';
+  allTeamLeads: any[] = [];
 
   userForm = this.fb.group({
     username: ['', Validators.required],
@@ -82,6 +87,14 @@ export class UsersComponent implements OnInit {
       },
       error: () => {
         this.loading = false;
+      }
+    });
+
+    this.userService.getUsers({ limit: 1000, userType: 'TEAMLEAD', sortBy: 'username', sortOrder: 'asc' }).subscribe({
+      next: (res: any) => {
+        if (res?.success && res.data) {
+          this.allTeamLeads = res.data.users || [];
+        }
       }
     });
   }
@@ -150,6 +163,36 @@ export class UsersComponent implements OnInit {
     }
   }
 
+  openActivateModal(user: any): void {
+    this.pendingUser = user;
+    this.activateReportsTo = '';
+    this.showPendingModal = true;
+  }
+
+  closeActivateModal(): void {
+    this.showPendingModal = false;
+    this.pendingUser = null;
+    this.activateReportsTo = '';
+  }
+
+  activateUser(): void {
+    if (!this.pendingUser) return;
+    if (!this.activateReportsTo) {
+      this.toastService.show('Please select a Team Lead to assign this user to.', 'danger');
+      return;
+    }
+    this.userService.updateUser(this.pendingUser._id, { status: 'active', reportsTo: this.activateReportsTo }).subscribe({
+      next: (res: any) => {
+        this.toastService.show(res?.message || 'User activated successfully!');
+        this.closeActivateModal();
+        this.loadUsers();
+      },
+      error: (err) => {
+        this.toastService.show(err.error?.message || 'Failed to activate user', 'danger');
+      }
+    });
+  }
+
   openCreateModal(): void {
     this.editingUser = null;
     this.userForm.reset({
@@ -157,7 +200,7 @@ export class UsersComponent implements OnInit {
       email: '',
       password: '',
       role: 'EMPLOYEE',
-      reportsTo: '',
+      reportsTo: this.teamLeads.length > 0 ? this.teamLeads[0]._id : '',
       transferReportsTo: ''
     });
     this.userForm.get('password')?.setValidators([Validators.required, Validators.minLength(8)]);
@@ -174,7 +217,8 @@ export class UsersComponent implements OnInit {
       reportsTo: user.reportsTo?._id || user.reportsTo || '',
       transferReportsTo: ''
     });
-    this.userForm.get('password')?.clearValidators();
+    this.userForm.get('password')?.setValue('');
+    this.userForm.get('password')?.setValidators([Validators.minLength(8)]);
     this.userForm.get('password')?.updateValueAndValidity();
     this.showModal = true;
   }
@@ -190,12 +234,28 @@ export class UsersComponent implements OnInit {
     }
 
     const val = this.userForm.value;
+
+    if (this.authService.currentUser()?.role === 'MANAGER' && val.role === 'EMPLOYEE' && !val.reportsTo) {
+      this.toastService.show('Please select a Team Lead (Reports To) for the Employee.', 'danger');
+      return;
+    }
+
+    const roleMap: Record<string, string> = {
+      MANAGER: 'manager',
+      TEAMLEAD: 'teamLead',
+      EMPLOYEE: 'employee'
+    };
+
     const payload: any = {
       username: val.username,
       email: val.email,
-      role: val.role,
-      reportsTo: val.reportsTo || null
+      role: roleMap[val.role ?? ''] ?? 'employee',
+      reportsTo: val.role === 'EMPLOYEE' ? (val.reportsTo || null) : null
     };
+
+    if (val.password) {
+      payload.password = val.password;
+    }
 
     if (this.editingUser) {
       if (this.editingUser.role === 'TEAMLEAD' && val.role === 'EMPLOYEE' && this.hasReports(this.editingUser._id)) {
@@ -216,7 +276,6 @@ export class UsersComponent implements OnInit {
         this.proceedUpdate(payload);
       }
     } else {
-      payload.password = val.password;
       this.userService.createUser(payload).subscribe({
         next: (res: any) => {
           this.toastService.show(res?.message || 'User created successfully!');

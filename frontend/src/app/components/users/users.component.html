@@ -66,13 +66,14 @@
               }
             </th>
             <th>Reports To</th>
+            <th>Status</th>
             <th class="user-select-none" style="cursor: pointer;" (click)="sortBy('createdAt')">
               Created At
               @if (sortColumn === 'createdAt') {
                 <i class="bi" [class.bi-arrow-up]="sortDirection === 'asc'" [class.bi-arrow-down]="sortDirection === 'desc'"></i>
               }
             </th>
-            <th style="width: 100px;">Actions</th>
+            <th style="width: 120px;">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -107,8 +108,22 @@
                     -
                   }
                 </td>
-                <td>{{ user.createdAt | date:'medium' }}</td>
                 <td>
+                  @if (user.status === 'PENDING' || user.status === 'pending') {
+                    <span class="badge bg-warning text-dark">PENDING</span>
+                  } @else if (user.status === 'ACTIVE' || user.status === 'active') {
+                    <span class="badge bg-success">ACTIVE</span>
+                  } @else {
+                    <span class="badge bg-secondary">{{ user.status?.toUpperCase() }}</span>
+                  }
+                </td>
+                <td>{{ user.createdAt | date:'medium' }}</td>
+                <td class="d-flex gap-1">
+                  @if (authService.currentUser()?.role === 'MANAGER' && (user.status === 'PENDING' || user.status === 'pending')) {
+                    <button class="btn btn-success btn-sm" (click)="openActivateModal(user)" title="Activate User">
+                      <i class="bi bi-check-circle"></i>
+                    </button>
+                  }
                   <button class="btn btn-outline-secondary btn-sm" (click)="openEditModal(user)">
                     <i class="bi bi-pencil"></i>
                   </button>
@@ -116,7 +131,7 @@
               </tr>
             } @empty {
               <tr>
-                <td colspan="7" class="text-center py-4 text-secondary">
+                <td colspan="8" class="text-center py-4 text-secondary">
                   No users found.
                 </td>
               </tr>
@@ -161,7 +176,7 @@
         <div class="modal-body">
           <form [formGroup]="userForm">
             <div class="mb-3">
-              <label for="username" class="form-label">Username</label>
+              <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
               <input
                 type="text"
                 id="username"
@@ -175,7 +190,7 @@
             </div>
 
             <div class="mb-3">
-              <label for="email" class="form-label">Email</label>
+              <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
               <input
                 type="email"
                 id="email"
@@ -188,25 +203,29 @@
               }
             </div>
 
-            @if (!editingUser) {
-              <div class="mb-3">
-                <label for="password" class="form-label">Password</label>
+            <div class="mb-3">
+              <label for="password" class="form-label">Password @if (!editingUser) { <span class="text-danger">*</span> }</label>
+              <div class="input-group">
                 <input
-                  type="password"
+                  [type]="showPassword ? 'text' : 'password'"
                   id="password"
                   formControlName="password"
-                  class="form-control"
+                  class="form-control rounded-start"
+                  [placeholder]="editingUser ? 'Leave blank to keep current' : ''"
                   [class.is-invalid]="userForm.get('password')?.touched && userForm.get('password')?.invalid"
                 />
-                @if (userForm.get('password')?.touched && userForm.get('password')?.invalid) {
-                  <div class="invalid-feedback">Password must be at least 8 characters long.</div>
-                }
+                <button class="btn btn-outline-secondary rounded-end" type="button" (click)="showPassword = !showPassword">
+                  <i class="bi" [class.bi-eye]="!showPassword" [class.bi-eye-slash]="showPassword"></i>
+                </button>
               </div>
-            }
+              @if (userForm.get('password')?.touched && userForm.get('password')?.invalid) {
+                <div class="text-danger small mt-1">Password must be at least 8 characters long.</div>
+              }
+            </div>
 
             @if (authService.currentUser()?.role === 'MANAGER') {
               <div class="mb-3">
-                <label for="role" class="form-label">Role</label>
+                <label for="role" class="form-label">Role <span class="text-danger">*</span></label>
                 <select id="role" formControlName="role" class="form-control">
                   <option value="EMPLOYEE">Employee</option>
                   <option value="TEAMLEAD">Team Lead</option>
@@ -216,7 +235,7 @@
 
               @if (editingUser && editingUser.role === 'TEAMLEAD' && userForm.get('role')?.value === 'EMPLOYEE' && hasReports(editingUser._id)) {
                 <div class="mb-3">
-                  <label for="transferReportsTo" class="form-label text-warning">Transfer Direct Reports To</label>
+                  <label for="transferReportsTo" class="form-label text-warning">Transfer Direct Reports To <span class="text-danger">*</span></label>
                   <select id="transferReportsTo" formControlName="transferReportsTo" class="form-control border-warning">
                     <option value="">Select New Team Lead</option>
                     @for (tl of getOtherTeamLeads(editingUser._id); track tl._id) {
@@ -227,21 +246,62 @@
                 </div>
               }
 
-              <div class="mb-3">
-                <label for="reportsTo" class="form-label">Reports To (Team Lead)</label>
-                <select id="reportsTo" formControlName="reportsTo" class="form-control">
-                  <option value="">None</option>
-                  @for (tl of teamLeads; track tl._id) {
-                    <option [value]="tl._id">{{ tl.username }}</option>
-                  }
-                </select>
-              </div>
+              @if (userForm.get('role')?.value === 'EMPLOYEE') {
+                <div class="mb-3">
+                  <label for="reportsTo" class="form-label">Reports To (Team Lead) <span class="text-danger">*</span></label>
+                  <select id="reportsTo" formControlName="reportsTo" class="form-control">
+                    @for (tl of (editingUser ? getOtherTeamLeads(editingUser._id) : teamLeads); track tl._id) {
+                      <option [value]="tl._id">{{ tl.username }}</option>
+                    }
+                  </select>
+                </div>
+              }
             }
           </form>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancel</button>
           <button type="button" class="btn btn-primary" (click)="saveUser()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+@if (showPendingModal && pendingUser) {
+  <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0, 0, 0, 0.5);">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Activate User</h5>
+          <button type="button" class="btn-close" (click)="closeActivateModal()"></button>
+        </div>
+        <div class="modal-body py-4">
+          <div class="text-center mb-3">
+            <i class="bi bi-person-check fs-1 text-success d-block mb-2"></i>
+            <p class="mb-1">Activate account for</p>
+            <strong>{{ pendingUser.username }}</strong>
+            <p class="text-secondary small mt-1">{{ pendingUser.email }}</p>
+          </div>
+          <div class="mb-2">
+            <label for="activateTL" class="form-label">Assign to Team Lead <span class="text-danger">*</span></label>
+            <select
+              id="activateTL"
+              class="form-control"
+              [(ngModel)]="activateReportsTo"
+            >
+              <option value="">Select Team Lead</option>
+              @for (tl of allTeamLeads; track tl._id) {
+                <option [value]="tl._id">{{ tl.username }}</option>
+              }
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button type="button" class="btn btn-secondary" (click)="closeActivateModal()">Cancel</button>
+          <button type="button" class="btn btn-success" (click)="activateUser()">
+            <i class="bi bi-check-circle me-1"></i> Activate
+          </button>
         </div>
       </div>
     </div>

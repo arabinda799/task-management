@@ -17,7 +17,12 @@ const findAll = async (req) => {
     }
 
     if (userType) {
-        query.role = userType.toUpperCase();
+        const roleMap = {
+            MANAGER: ROLES.MANAGER,
+            TEAMLEAD: ROLES.TEAM_LEAD,
+            EMPLOYEE: ROLES.EMPLOYEE
+        };
+        query.role = roleMap[userType.toUpperCase()] || userType;
     }
 
     if (search) {
@@ -48,6 +53,7 @@ const findAll = async (req) => {
     const formattedUsers = users.map(user => {
         const u = user.toObject();
         if (u.role) u.role = u.role.toUpperCase();
+        if (u.status) u.status = u.status.toUpperCase();
         if (u.reportsTo && u.reportsTo.role) {
             u.reportsTo.role = u.reportsTo.role.toUpperCase();
         }
@@ -139,7 +145,7 @@ const create = async (req) => {
 
 const update = async (req) => {
     const { id } = req.params;
-    const { username, email, role, reportsTo } = req.body;
+    const { username, email, role, reportsTo, password, status } = req.body;
     const { role: actorRole, id: actorId } = req.user;
 
     const user = await User.findOne({ _id: id, deletedAt: null });
@@ -196,13 +202,23 @@ const update = async (req) => {
         }
     }
 
+    if (status !== undefined) {
+        user.status = status.toLowerCase();
+    }
+
+    if (password) {
+        const argon2 = require("argon2");
+        user.password = await argon2.hash(password);
+    }
+
     await user.save();
     return new ApiResponse(true, "User updated successfully", {
         id: user._id,
         username: user.username,
         email: user.email,
         role: user.role,
-        reportsTo: user.reportsTo
+        reportsTo: user.reportsTo,
+        status: user.status.toUpperCase()
     });
 };
 

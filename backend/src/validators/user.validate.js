@@ -1,6 +1,7 @@
 const { body, param } = require("express-validator");
 const validateResults = require("../middleware/validate");
 const ROLES = require("../constants/role.const");
+const { STATUS } = require("../constants/status.const");
 
 const validateIds = (value) => {
     const arr = Array.isArray(value) ? value : [value];
@@ -61,6 +62,16 @@ const updateUserValidator = [
     body("reportsTo")
         .optional({ checkFalsy: true })
         .isMongoId().withMessage("Invalid reportsTo user ID format"),
+
+    body("password")
+        .optional()
+        .isLength({ min: 8 }).withMessage("Password must be at least 8 characters long")
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).*$/)
+        .withMessage("Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"),
+
+    body("status")
+        .optional()
+        .isIn(Object.values(STATUS)).withMessage("Invalid status"),
 
     validateResults
 ];

@@ -167,13 +167,21 @@ export class TasksComponent implements OnInit {
 
   openCreateModal(): void {
     this.editingTask = null;
+    const currentUserId = this.authService.currentUser()?._id || '';
+    const isEmployee = this.authService.currentUser()?.role === 'EMPLOYEE';
     this.taskForm.reset({
       title: '',
       description: '',
-      assignedTo: this.authService.currentUser()?.role === 'EMPLOYEE' ? this.authService.currentUser()?.id : '',
+      assignedTo: isEmployee ? currentUserId : '',
       dueDate: '',
       status: 'pending'
     });
+    if (isEmployee) {
+      this.taskForm.get('assignedTo')?.clearValidators();
+    } else {
+      this.taskForm.get('assignedTo')?.setValidators([Validators.required]);
+    }
+    this.taskForm.get('assignedTo')?.updateValueAndValidity();
     this.showModal = true;
   }
 
@@ -183,13 +191,23 @@ export class TasksComponent implements OnInit {
     if (task.dueDate) {
       formattedDate = new Date(task.dueDate).toISOString().substring(0, 16);
     }
+    const currentUserId = this.authService.currentUser()?._id || '';
+    const isEmployee = this.authService.currentUser()?.role === 'EMPLOYEE';
+    const rawStatus = task.status ? task.status.toLowerCase() : 'pending';
+    const editableStatus = rawStatus === 'overdue' ? 'pending' : rawStatus;
     this.taskForm.patchValue({
       title: task.title,
       description: task.description,
-      assignedTo: task.assignedTo?._id || task.assignedTo,
+      assignedTo: isEmployee ? currentUserId : (task.assignedTo?._id || task.assignedTo),
       dueDate: formattedDate,
-      status: task.status ? task.status.toLowerCase() : 'pending'
+      status: editableStatus
     });
+    if (isEmployee) {
+      this.taskForm.get('assignedTo')?.clearValidators();
+    } else {
+      this.taskForm.get('assignedTo')?.setValidators([Validators.required]);
+    }
+    this.taskForm.get('assignedTo')?.updateValueAndValidity();
     this.showModal = true;
   }
 
@@ -203,7 +221,27 @@ export class TasksComponent implements OnInit {
       return;
     }
 
-    const payload = this.taskForm.value;
+    const val = this.taskForm.value;
+    const isEmployee = this.authService.currentUser()?.role === 'EMPLOYEE';
+    const currentUserId = this.authService.currentUser()?._id || '';
+
+    const resolvedAssignee = isEmployee ? currentUserId : val.assignedTo;
+
+    if (!isEmployee && !resolvedAssignee) {
+      this.toastService.show('Please select a user to assign the task to.', 'danger');
+      return;
+    }
+
+    const payload: any = {
+      title: val.title,
+      description: val.description,
+      dueDate: val.dueDate,
+      status: val.status || 'pending'
+    };
+
+    if (resolvedAssignee) {
+      payload.assignedTo = resolvedAssignee;
+    }
 
     if (this.editingTask) {
       this.taskService.updateTask(this.editingTask._id, payload).subscribe({

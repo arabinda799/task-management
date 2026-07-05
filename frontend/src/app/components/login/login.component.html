@@ -27,15 +27,20 @@
 
       <div class="mb-3">
         <label for="password" class="form-label">Password</label>
-        <input
-          type="password"
-          id="password"
-          formControlName="password"
-          class="form-control"
-          [class.is-invalid]="loginForm.get('password')?.touched && loginForm.get('password')?.invalid"
-        />
+        <div class="input-group">
+          <input
+            [type]="showPassword ? 'text' : 'password'"
+            id="password"
+            formControlName="password"
+            class="form-control rounded-start"
+            [class.is-invalid]="loginForm.get('password')?.touched && loginForm.get('password')?.invalid"
+          />
+          <button class="btn btn-outline-secondary rounded-end" type="button" (click)="showPassword = !showPassword">
+            <i class="bi" [class.bi-eye]="!showPassword" [class.bi-eye-slash]="showPassword"></i>
+          </button>
+        </div>
         @if (loginForm.get('password')?.touched && loginForm.get('password')?.invalid) {
-          <div class="invalid-feedback">
+          <div class="text-danger small mt-1">
             Password must be at least 8 characters long.
           </div>
         }

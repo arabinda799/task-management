@@ -49,17 +49,44 @@
 
       <div class="mb-3">
         <label for="password" class="form-label">Password</label>
-        <input
-          type="password"
-          id="password"
-          formControlName="password"
-          class="form-control"
-          [class.is-invalid]="registerForm.get('password')?.touched && registerForm.get('password')?.invalid"
-        />
+        <div class="input-group">
+          <input
+            [type]="showPassword ? 'text' : 'password'"
+            id="password"
+            formControlName="password"
+            class="form-control rounded-start"
+            [class.is-invalid]="registerForm.get('password')?.touched && registerForm.get('password')?.invalid"
+          />
+          <button class="btn btn-outline-secondary rounded-end" type="button" (click)="showPassword = !showPassword">
+            <i class="bi" [class.bi-eye]="!showPassword" [class.bi-eye-slash]="showPassword"></i>
+          </button>
+        </div>
         @if (registerForm.get('password')?.touched && registerForm.get('password')?.invalid) {
-          <div class="invalid-feedback">
+          <div class="text-danger small mt-1">
             Password must be at least 8 characters long, containing uppercase, lowercase, numbers, and special characters.
           </div>
+        }
+      </div>
+
+      <div class="mb-3">
+        <label for="cPassword" class="form-label">Confirm Password</label>
+        <div class="input-group">
+          <input
+            [type]="showConfirmPassword ? 'text' : 'password'"
+            id="cPassword"
+            formControlName="cPassword"
+            class="form-control rounded-start"
+            [class.is-invalid]="registerForm.get('cPassword')?.touched && (registerForm.get('cPassword')?.invalid || registerForm.hasError('passwordMismatch'))"
+          />
+          <button class="btn btn-outline-secondary rounded-end" type="button" (click)="showConfirmPassword = !showConfirmPassword">
+            <i class="bi" [class.bi-eye]="!showConfirmPassword" [class.bi-eye-slash]="showConfirmPassword"></i>
+          </button>
+        </div>
+        @if (registerForm.get('cPassword')?.touched && registerForm.get('cPassword')?.invalid) {
+          <div class="text-danger small mt-1">Confirm password is required.</div>
+        }
+        @if (registerForm.get('cPassword')?.touched && !registerForm.get('cPassword')?.invalid && registerForm.hasError('passwordMismatch')) {
+          <div class="text-danger small mt-1">Passwords do not match.</div>
         }
       </div>
 

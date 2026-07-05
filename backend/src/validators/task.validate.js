@@ -24,7 +24,7 @@ const createTaskValidator = [
         .trim(),
 
     body("assignedTo")
-        .notEmpty().withMessage("Assigned user is required")
+        .optional({ checkFalsy: true })
         .isMongoId().withMessage("Invalid user ID format"),
 
     body("dueDate")

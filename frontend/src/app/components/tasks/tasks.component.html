@@ -178,7 +178,7 @@
         <div class="modal-body">
           <form [formGroup]="taskForm">
             <div class="mb-3">
-              <label for="taskTitle" class="form-label">Title</label>
+              <label for="taskTitle" class="form-label">Title <span class="text-danger">*</span></label>
               <input
                 type="text"
                 id="taskTitle"
@@ -201,9 +201,9 @@
               ></textarea>
             </div>
 
-            @if (authService.currentUser()?.role !== 'employee') {
+            @if (authService.currentUser()?.role !== 'EMPLOYEE') {
               <div class="mb-3">
-                <label for="assignedTo" class="form-label">Assign To</label>
+                <label for="assignedTo" class="form-label">Assign To <span class="text-danger">*</span></label>
                 <select
                   id="assignedTo"
                   formControlName="assignedTo"
@@ -222,7 +222,7 @@
             }
 
             <div class="mb-3">
-              <label for="dueDate" class="form-label">Due Date</label>
+              <label for="dueDate" class="form-label">Due Date <span class="text-danger">*</span></label>
               <input
                 type="datetime-local"
                 id="dueDate"
